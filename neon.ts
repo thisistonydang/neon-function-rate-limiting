@@ -16,6 +16,10 @@ export default defineConfig({
       name: "Postgres token-bucket rate limit",
       source: "functions/pg-token-bucket.ts",
     },
+    pgconcurrency: {
+      name: "Postgres concurrency limit",
+      source: "functions/pg-concurrency.ts",
+    },
   },
   // Branch policy: per-branch tuning
   branch: (branch) => {
