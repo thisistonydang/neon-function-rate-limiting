@@ -8,6 +8,10 @@ export default defineConfig({
       name: "Unprotected function",
       source: "functions/unprotected.ts",
     },
+    pgfixedwindow: {
+      name: "Postgres fixed-window rate limit",
+      source: "functions/pg-fixed-window.ts",
+    },
   },
   // Branch policy: per-branch tuning
   branch: (branch) => {

@@ -1,6 +1,11 @@
 {
   "dependencies": {
     "@neon/config": "^1.7.2",
-    "@neon/env": "^1.4.3"
+    "@neon/env": "^1.4.3",
+    "@neon/functions": "^0.11.0",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1"
   }
 }
