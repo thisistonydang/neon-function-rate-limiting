@@ -1,18 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { attachDatabasePool } from "@neon/functions";
-import { Pool } from "pg";
+import { createDatabasePool } from "./database.ts";
 
 const MAX_CONCURRENT = 2;
 const WORK_SECONDS = 5;
 const LEASE_SECONDS = 30;
+const RETRY_AFTER_SECONDS = 1;
 const POLICY_KEY = "pg-concurrency";
 const SUBJECT_KEY = "global";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 5,
-});
-attachDatabasePool(pool);
+const pool = createDatabasePool();
 
 type LeaseResult =
   | { acquired: true; remaining: number }
@@ -23,6 +19,7 @@ async function acquireLease(leaseId: string): Promise<LeaseResult> {
 
   try {
     await client.query("BEGIN");
+    await client.query("SET LOCAL lock_timeout = '2s'");
     await client.query(
       "SELECT pg_advisory_xact_lock(hashtextextended($1 || ':' || $2, 0))",
       [POLICY_KEY, SUBJECT_KEY],
@@ -35,16 +32,8 @@ async function acquireLease(leaseId: string): Promise<LeaseResult> {
       [POLICY_KEY, SUBJECT_KEY],
     );
 
-    const { rows } = await client.query<{
-      active_count: number;
-      retry_after: number | null;
-    }>(
-      `SELECT
-         count(*)::integer AS active_count,
-         greatest(
-           1,
-           ceil(extract(epoch FROM (min(expires_at) - clock_timestamp())))
-         )::integer AS retry_after
+    const { rows } = await client.query<{ active_count: number }>(
+      `SELECT count(*)::integer AS active_count
        FROM rate_limit.concurrency_leases
        WHERE policy_key = $1
          AND subject_key = $2
@@ -54,7 +43,7 @@ async function acquireLease(leaseId: string): Promise<LeaseResult> {
 
     if (rows[0].active_count >= MAX_CONCURRENT) {
       await client.query("COMMIT");
-      return { acquired: false, retryAfter: rows[0].retry_after ?? 1 };
+      return { acquired: false, retryAfter: RETRY_AFTER_SECONDS };
     }
 
     await client.query(
@@ -81,7 +70,11 @@ async function acquireLease(leaseId: string): Promise<LeaseResult> {
       remaining: MAX_CONCURRENT - rows[0].active_count - 1,
     };
   } catch (error) {
-    await client.query("ROLLBACK");
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      // Preserve the original database error.
+    }
     throw error;
   } finally {
     client.release();
@@ -100,7 +93,17 @@ async function releaseLease(leaseId: string) {
 
 export default async function handler(_request: Request) {
   const leaseId = randomUUID();
-  const lease = await acquireLease(leaseId);
+  let lease: LeaseResult;
+
+  try {
+    lease = await acquireLease(leaseId);
+  } catch (error) {
+    console.error("Concurrency limit failed", error);
+    return new Response("Rate limiter unavailable", {
+      status: 503,
+      headers: { "Retry-After": "1" },
+    });
+  }
 
   if (!lease.acquired) {
     return new Response("Too many concurrent requests", {
