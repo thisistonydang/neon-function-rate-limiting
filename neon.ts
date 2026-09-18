@@ -12,6 +12,10 @@ export default defineConfig({
       name: "Postgres fixed-window rate limit",
       source: "functions/pg-fixed-window.ts",
     },
+    pgtokenbucket: {
+      name: "Postgres token-bucket rate limit",
+      source: "functions/pg-token-bucket.ts",
+    },
   },
   // Branch policy: per-branch tuning
   branch: (branch) => {
