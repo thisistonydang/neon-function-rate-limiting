@@ -9,7 +9,7 @@ const SUBJECT_KEY = "global";
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
   limiter: Ratelimit.slidingWindow(LIMIT, WINDOW),
-  prefix: `rate-limit:${process.env.NEON_BRANCH ?? "local"}:sliding-window`,
+  prefix: `neon-function-rate-limiting:${process.env.NEON_BRANCH ?? "local"}:sliding-window`,
   timeout: 1_000,
   analytics: false,
 });
