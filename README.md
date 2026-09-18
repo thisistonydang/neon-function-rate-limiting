@@ -122,6 +122,7 @@ Rate-limit responses include limit, remaining, reset, or retry headers where the
 ## Production notes
 
 - These Postgres patterns suit low to moderate request volume. Consider Redis or edge rate limiting when a database operation on every request is too expensive.
+- Managed services such as Cloudflare can apply rate limits before requests reach the Function.
 - Database and Upstash failures fail closed with `503 Rate limiter unavailable`.
 - The concurrency lease must last longer than the protected operation. Renew the lease when work can outlive `LEASE_SECONDS`.
 - The examples remove expired fixed windows and concurrency leases lazily. Periodic cleanup is useful when many subjects stop making requests.
