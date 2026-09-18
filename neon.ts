@@ -20,6 +20,14 @@ export default defineConfig({
       name: "Postgres concurrency limit",
       source: "functions/pg-concurrency.ts",
     },
+    upstashsliding: {
+      name: "Upstash sliding-window rate limit",
+      source: "functions/upstash-sliding-window.ts",
+      env: {
+        UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL!,
+        UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      },
+    },
   },
   // Branch policy: per-branch tuning
   branch: (branch) => {

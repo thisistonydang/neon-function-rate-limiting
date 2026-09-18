@@ -10,6 +10,7 @@ Rate-limiting patterns for Neon Functions and Lakebase Postgres.
 | `pgfixedwindow`    | You need a simple request limit and can accept bursts around window boundaries.  |
 | `pgtokenbucket`    | You want to allow short bursts while controlling the sustained request rate.     |
 | `pgconcurrency`    | You need to limit simultaneous expensive or long-running operations.             |
+| `upstashsliding`   | You need a shared sliding-window limit without querying Postgres per request.    |
 
 The protected examples currently use `SUBJECT_KEY = "global"` and small limits for manual testing. A global policy is useful for protecting total endpoint capacity, but one caller can consume it for everyone. For per-caller limits, replace the subject with a verified user ID, organization ID, or API-key hash. Do not trust a caller-supplied identity.
 
@@ -25,6 +26,23 @@ psql "$DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 \
 ```
 
 Functions use the pooled `DATABASE_URL` at runtime.
+
+## Configure Upstash
+
+Create an Upstash Redis database and copy `.env.example` to `.env.local`. Keep the existing Neon variables and replace the two placeholder values:
+
+```text
+UPSTASH_REDIS_REST_URL=...
+UPSTASH_REDIS_REST_TOKEN=...
+```
+
+Deploy with the environment file so Neon uploads the credentials to the Function:
+
+```sh
+neon deploy --env .env.local
+```
+
+The Upstash example fails closed with `503` when Redis fails or takes longer than one second. Change this policy only after deciding whether allowing unmetered requests is safe for your workload.
 
 ## Production notes
 

@@ -7,6 +7,8 @@
     "@neon/config": "^1.7.2",
     "@neon/env": "^1.4.3",
     "@neon/functions": "^0.11.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.4",
     "pg": "^8.23.0"
   },
   "devDependencies": {
